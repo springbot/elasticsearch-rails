@@ -67,7 +67,7 @@ module Elasticsearch
   #     # ...
   #
   module Model
-    METHODS = [:search, :mapping, :mappings, :settings, :index_name, :document_type, :import]
+    METHODS = [:search, :mapping, :mappings, :settings, :index_name, :document_type, :import, :after_create_index]
 
     # Adds the `Elasticsearch::Model` functionality to the including class.
     #

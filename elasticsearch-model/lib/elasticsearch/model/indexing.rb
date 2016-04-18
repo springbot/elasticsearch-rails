@@ -71,8 +71,51 @@ module Elasticsearch
           self
         end
 
+        def dynamic_template(name, body={})
+          @put_mapping[:dynamic_templates] ||= []
+
+          @put_mapping[:dynamic_templates] << body
+        end
+
         def to_hash
           { @type.to_sym => @options.merge( properties: @mapping ) }
+        end
+
+        def as_json(options={})
+          to_hash
+        end
+      end
+
+      class PutMappings
+        def initialize(type, options={})
+          raise ArgumentError, "`type` is missing" if type.nil?
+
+          @type    = type
+          @options = options
+          @put_mapping = {
+            dynamic_templates: []
+          }
+        end
+
+        def dynamic_template(name, body={})
+          @put_mapping[:dynamic_templates] << { name => body }
+        end
+
+        def has_callbacks?
+          has_options? || has_dynamic_templates?
+        end
+
+        def has_options?
+          !@options.empty?
+        end
+
+        def has_dynamic_templates?
+          !@put_mapping[:dynamic_templates].empty?
+        end
+
+        def to_hash
+          @options.merge!( dynamic_templates: @put_mapping[:dynamic_templates] ) if has_dynamic_templates?
+          { @type.to_sym => @options }
         end
 
         def as_json(options={})
@@ -144,6 +187,19 @@ module Elasticsearch
             @mapping
           end
         end; alias_method :mappings, :mapping
+
+        def after_create_index(options={}, &block)
+          @put_mapping ||= PutMappings.new(document_type, options)
+
+          if block_given?
+            @put_mapping.instance_eval(&block)
+            return self
+          else
+            if @put_mapping.has_callbacks?
+              client.indices.put_mapping index: index_name, type: document_type, body: @put_mapping.to_hash
+            end
+          end
+        end
 
         # Define settings for the index
         #
@@ -229,6 +285,7 @@ module Elasticsearch
                                        body: {
                                          settings: self.settings.to_hash,
                                          mappings: self.mappings.to_hash }
+            after_create_index
           end
         end
 

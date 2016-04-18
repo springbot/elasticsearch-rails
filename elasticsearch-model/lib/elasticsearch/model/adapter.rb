@@ -42,9 +42,14 @@ module Elasticsearch
       #
       # @see ::Elasticsearch::Model::Adapter::Adapter.register
       #
-      def register(name, condition)
-        Adapter.register(name, condition)
+      def register(name, condition, index=0)
+        Adapter.register(name, condition, index)
       end; module_function :register
+
+      # TBD
+      def push_registration(name, condition)
+        Adapter.push_registration(name, condition)
+      end; module_function :push_registration
 
       # Contains an adapter for specific OxM or architecture.
       #
@@ -84,11 +89,16 @@ module Elasticsearch
         #       }
         #     )
         #
-        def self.register(name, condition)
-          self.adapters[name] = condition
+        def self.register(name, condition, index=0)
+          self.adapters_indexed[index][name] = condition
         end
 
-        # Return the collection of registered adapters
+        # TBD - pushes a registration to the top of the stack
+        def self.push_registration(name, condition)
+          self.register(name, condition, 9999)
+        end
+
+        # Return the collection of registered adapters sorted by optional index
         #
         # @example Return the currently registered adapters
         #
@@ -101,7 +111,14 @@ module Elasticsearch
         # @return [Hash] The collection of adapters
         #
         def self.adapters
-          @adapters ||= {}
+          self.adapters_indexed.sort.reverse.map{ |k,v| v }.reduce({}, :merge)
+        end
+
+        # Returns the indexable hash of adpaters
+        #
+        # @api private
+        def self.adapters_indexed
+          @adapters ||= Hash.new { |h,k| h[k] = {} }
         end
 
         # Return the module with {Default::Records} interface implementation
