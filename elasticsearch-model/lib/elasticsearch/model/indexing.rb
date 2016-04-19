@@ -101,8 +101,22 @@ module Elasticsearch
           @put_mapping[:dynamic_templates] << { name => body }
         end
 
+        def has_callbacks?
+          has_options? || has_dynamic_templates?
+        end
+
+        def has_options?
+          !@options.empty?
+        end
+
+        def has_dynamic_templates?
+          !@put_mapping[:dynamic_templates]
+        end
+
         def to_hash
-          { @type.to_sym => @options.merge( dynamic_templates: @put_mapping[:dynamic_templates] ) }
+          payload = @options
+          payload = payload.merge( dynamic_templates: @put_mapping[:dynamic_templates] ) if has_dynamic_templates?
+          { @type.to_sym => @options }
         end
 
         def as_json(options={})
@@ -182,7 +196,9 @@ module Elasticsearch
             @put_mapping.instance_eval(&block)
             return self
           else
-            client.indices.put_mapping index: index_name, type: document_type, body: @put_mapping.to_hash
+            if @put_mapping.has_callbacks?
+              client.indices.put_mapping index: index_name, type: document_type, body: @put_mapping.to_hash
+            end
           end
         end
 
@@ -270,10 +286,8 @@ module Elasticsearch
                                        body: {
                                          settings: self.settings.to_hash,
                                          mappings: self.mappings.to_hash }
+            after_create_index
           end
-
-
-          after_create_index
         end
 
         # Returns true if the index exists
