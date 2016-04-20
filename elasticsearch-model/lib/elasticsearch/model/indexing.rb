@@ -110,12 +110,11 @@ module Elasticsearch
         end
 
         def has_dynamic_templates?
-          !@put_mapping[:dynamic_templates]
+          !@put_mapping[:dynamic_templates].empty?
         end
 
         def to_hash
-          payload = @options
-          payload = payload.merge( dynamic_templates: @put_mapping[:dynamic_templates] ) if has_dynamic_templates?
+          @options.merge!( dynamic_templates: @put_mapping[:dynamic_templates] ) if has_dynamic_templates?
           { @type.to_sym => @options }
         end
 
