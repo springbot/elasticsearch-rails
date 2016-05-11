@@ -46,6 +46,14 @@ module Elasticsearch
         Adapter.register(name, condition)
       end; module_function :register
 
+      # Pushes a registration to the beginning of execution loop
+      #
+      # @see ::Elasticsearch::Model::Adapter::Adapter.push_registration
+      #
+      def push_registration(name, condition)
+        Adapter.push_registration(name, condition)
+      end; module_function :push_registration
+
       # Contains an adapter for specific OxM or architecture.
       #
       class Adapter
@@ -86,6 +94,13 @@ module Elasticsearch
         #
         def self.register(name, condition)
           self.adapters[name] = condition
+        end
+
+        # Pushes an adapter for a condition so its lambda exectues first.
+        # Useful for overriding the behavior of a default adapter on a class by
+        # class basis.
+        def self.push_registration(name, condition)
+          @adapters = Hash[name, condition].merge self.adapters
         end
 
         # Return the collection of registered adapters
