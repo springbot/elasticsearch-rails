@@ -92,12 +92,12 @@ module Elasticsearch
 
           @type    = type
           @options = options
-          @put_mapping = {}
+          @put_mapping = {
+            dynamic_templates: []
+          }
         end
 
         def dynamic_template(name, body={})
-          @put_mapping[:dynamic_templates] ||= []
-
           @put_mapping[:dynamic_templates] << { name => body }
         end
 
