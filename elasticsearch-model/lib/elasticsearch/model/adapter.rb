@@ -42,14 +42,11 @@ module Elasticsearch
       #
       # @see ::Elasticsearch::Model::Adapter::Adapter.register
       #
-      def register(name, condition)
-        Adapter.register(name, condition)
+      def register(name, condition, index=0)
+        Adapter.register(name, condition, index)
       end; module_function :register
 
-      # Pushes a registration to the beginning of execution loop
-      #
-      # @see ::Elasticsearch::Model::Adapter::Adapter.push_registration
-      #
+      # TBD
       def push_registration(name, condition)
         Adapter.push_registration(name, condition)
       end; module_function :push_registration
@@ -92,18 +89,16 @@ module Elasticsearch
         #       }
         #     )
         #
-        def self.register(name, condition)
-          self.adapters[name] = condition
+        def self.register(name, condition, index=0)
+          self.adapters_indexed[index][name] = condition
         end
 
-        # Pushes an adapter for a condition so its lambda exectues first.
-        # Useful for overriding the behavior of a default adapter on a class by
-        # class basis.
+        # TBD - pushes a registration to the top of the stack
         def self.push_registration(name, condition)
-          @adapters = Hash[name, condition].merge self.adapters
+          self.register(name, condition, 9999)
         end
 
-        # Return the collection of registered adapters
+        # Return the collection of registered adapters sorted by optional index
         #
         # @example Return the currently registered adapters
         #
@@ -116,7 +111,14 @@ module Elasticsearch
         # @return [Hash] The collection of adapters
         #
         def self.adapters
-          @adapters ||= {}
+          self.adapters_indexed.sort.reverse.map{ |k,v| v }.reduce({}, :merge)
+        end
+
+        # Returns the indexable hash of adpaters
+        #
+        # @api private
+        def self.adapters_indexed
+          @adapters ||= Hash.new { |h,k| h[k] = {} }
         end
 
         # Return the module with {Default::Records} interface implementation
